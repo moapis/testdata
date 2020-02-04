@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -262,6 +263,8 @@ type DriverName string
 const (
 	// Sqlite driver name
 	Sqlite DriverName = "sqlite3"
+	// Postgres driver name
+	Postgres DriverName = "postgres"
 )
 
 // Schema holds all data generation parameters.
@@ -271,6 +274,10 @@ type Schema struct {
 	MaxDuration    int
 	WordLists      map[string]string
 	Tables         []Table
+}
+
+func (s *Schema) connect() (*sql.DB, error) {
+	return sql.Open(string(s.Driver), s.DataSourceName)
 }
 
 func loadList(fileName string) ([]string, error) {
@@ -317,11 +324,12 @@ func run() int {
 		log.Printf("Run: %v", err)
 		return 2
 	}
-	db, err := sql.Open(string(s.Driver), s.DataSourceName)
+	db, err := s.connect()
 	if err != nil {
 		log.Printf("Run: %v", err)
 		return 2
 	}
+	defer db.Close()
 
 	var (
 		ctx    context.Context

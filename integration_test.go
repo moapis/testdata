@@ -2,25 +2,24 @@
 // Use of this source code is governed by a License that can be found in the LICENSE file.
 // SPDX-License-Identifier: BSD-3-Clause
 
-// +build integration
-
 package main
 
 import (
-	"database/sql"
 	"os"
 	"testing"
 )
 
 const (
+	dropCategoriesQuery   = "drop table if exists categories cascade;"
 	createCategoriesQuery = `create table categories (
-		id int,
-		label varchar(50)
+		id int primary key,
+		label varchar(100)
 	);`
+	dropArticlesQuery   = "drop table if exists articles cascade;"
 	createArticlesQuery = `create table articles (
-		id bigint,
+		id bigint primary key,
 		created timestamp,
-		title varchar(50),
+		title varchar(100),
 		description varchar(2000),
 		category_id int references categories (id)
 	);`
@@ -29,10 +28,11 @@ const (
 func prepSqliteTest() error {
 	os.Remove("test.db")
 
-	db, err := sql.Open(string(exampleSchema.Driver), exampleSchema.DataSourceName)
+	db, err := exampleSchemas["sqlite"].connect()
 	if err != nil {
 		return err
 	}
+	defer db.Close()
 
 	if _, err := db.Exec(createCategoriesQuery); err != nil {
 		return err
@@ -48,7 +48,41 @@ func TestRunSqlite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	schemaFile = "example.json"
+	schemaFile = "example_sqlite.json"
+	if ret := run(); ret != 0 {
+		t.Errorf("run() ret = %v, wantRet %v", ret, 0)
+	}
+}
+
+func prepPqTest() error {
+	db, err := exampleSchemas["pq"].connect()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	if _, err := db.Exec(dropArticlesQuery); err != nil {
+		return err
+	}
+	if _, err := db.Exec(dropCategoriesQuery); err != nil {
+		return err
+	}
+
+	if _, err := db.Exec(createCategoriesQuery); err != nil {
+		return err
+	}
+	if _, err := db.Exec(createArticlesQuery); err != nil {
+		return err
+	}
+	return nil
+}
+
+func TestRunPq(t *testing.T) {
+	if err := prepPqTest(); err != nil {
+		t.Fatal(err)
+	}
+
+	schemaFile = "example_pq.json"
 	if ret := run(); ret != 0 {
 		t.Errorf("run() ret = %v, wantRet %v", ret, 0)
 	}

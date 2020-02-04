@@ -632,13 +632,8 @@ func Test_loadList(t *testing.T) {
 	}
 }
 
-var exampleSchema = &Schema{
-	Driver:         Sqlite,
-	DataSourceName: "file:test.db",
-	WordLists: map[string]string{
-		"lorem": "tests/lorem.txt",
-	},
-	Tables: []Table{
+var (
+	exampleSchemaTables = []Table{
 		{
 			Name:   "categories",
 			Amount: 4,
@@ -696,34 +691,52 @@ var exampleSchema = &Schema{
 				},
 			},
 		},
-	},
-}
+	}
+	exampleSchemas = map[string]*Schema{
+		"sqlite": {
+			Driver:         Sqlite,
+			DataSourceName: "file:test.db",
+			WordLists:      map[string]string{"lorem": "tests/lorem.txt"},
+			Tables:         exampleSchemaTables,
+		},
+		"pq": {
+			Driver:         Postgres,
+			DataSourceName: "user=postgres dbname=testdata sslmode=disable",
+			WordLists:      map[string]string{"lorem": "tests/lorem.txt"},
+			Tables:         exampleSchemaTables,
+		},
+	}
+)
 
 func TestLoadSchema(t *testing.T) {
-	js, err := json.MarshalIndent(exampleSchema, "", "   ")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = ioutil.WriteFile("example.json", js, 0644); err != nil {
-		t.Fatal(err)
+	for k, schema := range exampleSchemas {
+		name := fmt.Sprintf("example_%s.json", k)
+
+		js, err := json.MarshalIndent(schema, "", "   ")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = ioutil.WriteFile(name, js, 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := loadSchema(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if !reflect.DeepEqual(schema, got) {
+			t.Errorf("loadSchema() schema = \n%v\nwant\n%v", got, schema)
+		}
 	}
 
-	schema, err := loadSchema("example.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(exampleSchema, schema) {
-		t.Errorf("loadSchema() schema = \n%v\nwant\n%v", schema, exampleSchema)
-	}
-
-	if _, err = loadSchema("foo"); err == nil {
+	if _, err := loadSchema("foo"); err == nil {
 		t.Errorf("loadSchema() error = %v, wantErr %v", err, true)
 	}
-	if _, err = loadSchema("tests/invalid.json"); err == nil {
+	if _, err := loadSchema("tests/invalid.json"); err == nil {
 		t.Errorf("loadSchema() error = %v, wantErr %v", err, true)
 	}
-	if _, err = loadSchema("tests/invalid_wordlist.json"); err == nil {
+	if _, err := loadSchema("tests/invalid_wordlist.json"); err == nil {
 		t.Errorf("loadSchema() error = %v, wantErr %v", err, true)
 	}
 }
