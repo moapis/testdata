@@ -1,0 +1,7 @@
+{
+   "Driver": "foo",
+   "MaxDuration": 0,
+   "WordLists": {
+      "lorem": "tests/lorem.txt"
+   }
+}

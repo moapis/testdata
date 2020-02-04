@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
@@ -19,9 +20,13 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	_ "github.com/mattn/go-sqlite3"
 )
 
-var mock sqlmock.Sqlmock
+var (
+	mock sqlmock.Sqlmock
+	db   *sql.DB
+)
 
 func init() {
 	wordMap = map[string][]string{
@@ -452,6 +457,7 @@ func TestTable_prepareColumns(t *testing.T) {
 				WordListID: "some",
 				value:      genInt32,
 				wordList:   wordMap["some"],
+				rand:       rand.New(rand.NewSource(0)),
 			}},
 			false,
 		},
@@ -564,8 +570,8 @@ func TestTable_insert(t *testing.T) {
 	ep = mock.ExpectPrepare(query)
 	ep.ExpectExec().WithArgs(4, 4).WillReturnError(errors.New("TE2"))
 
-	if err = tb.insert(ctx, tx); err == nil || err.Error() != "table.generate: TE2" {
-		t.Errorf("Table.insert() error = %v, wantErr %v", err, "table.generate: TE2")
+	if err = tb.insert(ctx, tx); err == nil || err.Error() != "table.insert on test_table, row 0: TE2" {
+		t.Errorf("Table.insert() error = %v, wantErr %v", err, "table.insert on test_table, row 0: TE2")
 	}
 }
 
@@ -592,11 +598,45 @@ func TestMock(t *testing.T) {
 
 }
 
+func Test_loadList(t *testing.T) {
+	tests := []struct {
+		name     string
+		fileName string
+		want     []string
+		wantErr  bool
+	}{
+		{
+			"Success",
+			"tests/short.txt",
+			[]string{"Lorem", "ipsum", "dolor"},
+			false,
+		},
+		{
+			"Error",
+			"foo",
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := loadList(tt.fileName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("loadList() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("loadList() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 var exampleSchema = &Schema{
 	Driver:         Sqlite,
-	DataSourceName: "file:test.db?cache=shared&mode=memory",
+	DataSourceName: "file:test.db",
 	WordLists: map[string]string{
-		"american": "/usr/share/dict/american-english",
+		"lorem": "tests/lorem.txt",
 	},
 	Tables: []Table{
 		{
@@ -610,7 +650,7 @@ var exampleSchema = &Schema{
 				{
 					Name:       "label",
 					SQLType:    "text",
-					WordListID: "american",
+					WordListID: "lorem",
 					Seed:       1,
 					Min:        1,
 					Max:        2,
@@ -635,7 +675,7 @@ var exampleSchema = &Schema{
 				{
 					Name:       "title",
 					SQLType:    "text",
-					WordListID: "american",
+					WordListID: "lorem",
 					Seed:       4,
 					Min:        2,
 					Max:        10,
@@ -644,7 +684,7 @@ var exampleSchema = &Schema{
 					Name:       "description",
 					SQLType:    "text",
 					Null:       true,
-					WordListID: "american",
+					WordListID: "lorem",
 					Max:        200,
 				},
 				{
@@ -679,5 +719,33 @@ func TestLoadSchema(t *testing.T) {
 
 	if _, err = loadSchema("foo"); err == nil {
 		t.Errorf("loadSchema() error = %v, wantErr %v", err, true)
+	}
+	if _, err = loadSchema("tests/invalid.json"); err == nil {
+		t.Errorf("loadSchema() error = %v, wantErr %v", err, true)
+	}
+	if _, err = loadSchema("tests/invalid_wordlist.json"); err == nil {
+		t.Errorf("loadSchema() error = %v, wantErr %v", err, true)
+	}
+}
+
+func TestUnitRun(t *testing.T) {
+	schemaFile = "foo"
+	if ret := run(); ret != 2 {
+		t.Errorf("run() ret = %v, wantRet %v", ret, 2)
+	}
+
+	schemaFile = "tests/invalid_driver.json"
+	if ret := run(); ret != 2 {
+		t.Errorf("run() ret = %v, wantRet %v", ret, 2)
+	}
+
+	schemaFile = "tests/tx_fail.json"
+	if ret := run(); ret != 2 {
+		t.Errorf("run() ret = %v, wantRet %v", ret, 2)
+	}
+
+	schemaFile = "tests/tx_fail2.json"
+	if ret := run(); ret != 2 {
+		t.Errorf("run() ret = %v, wantRet %v", ret, 2)
 	}
 }

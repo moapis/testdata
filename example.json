@@ -1,8 +1,9 @@
 {
    "Driver": "sqlite3",
-   "DataSourceName": "file:test.db?cache=shared\u0026mode=memory",
+   "DataSourceName": "file:test.db",
+   "MaxDuration": 0,
    "WordLists": {
-      "american": "/usr/share/dict/american-english"
+      "lorem": "tests/lorem.txt"
    },
    "Tables": [
       {
@@ -21,7 +22,7 @@
             {
                "Name": "label",
                "SQLType": "text",
-               "WordListID": "american",
+               "WordListID": "lorem",
                "Seed": 1,
                "Min": 1,
                "Max": 2,
@@ -54,7 +55,7 @@
             {
                "Name": "title",
                "SQLType": "text",
-               "WordListID": "american",
+               "WordListID": "lorem",
                "Seed": 4,
                "Min": 2,
                "Max": 10,
@@ -63,7 +64,7 @@
             {
                "Name": "description",
                "SQLType": "text",
-               "WordListID": "american",
+               "WordListID": "lorem",
                "Seed": 0,
                "Min": 0,
                "Max": 200,

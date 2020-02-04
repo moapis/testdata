@@ -5,13 +5,16 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"os"
 	"strings"
 	"time"
 
@@ -224,9 +227,8 @@ func (t *Table) prepareColumns() error {
 				return fmt.Errorf("Wordlist %s for column %s not defined", col.WordListID, col.Name)
 			}
 			col.wordList = wl
-		}
-
-		if col.Seed != 0 {
+			col.rand = rand.New(rand.NewSource(col.Seed))
+		} else if col.Seed != 0 {
 			col.rand = rand.New(rand.NewSource(col.Seed))
 		}
 	}
@@ -247,7 +249,7 @@ func (t *Table) insert(ctx context.Context, tx *sql.Tx) error {
 
 	for i := 0; i < t.Amount; i++ {
 		if _, err := stmt.ExecContext(ctx, t.row()...); err != nil {
-			return fmt.Errorf("table.generate: %w", err)
+			return fmt.Errorf("table.insert on %s, row %d: %w", t.Name, i, err)
 		}
 	}
 
@@ -266,8 +268,23 @@ const (
 type Schema struct {
 	Driver         DriverName
 	DataSourceName string
+	MaxDuration    int
 	WordLists      map[string]string
 	Tables         []Table
+}
+
+func loadList(fileName string) ([]string, error) {
+	fh, err := os.Open(fileName)
+	if err != nil {
+		return nil, fmt.Errorf("loadList: %w", err)
+	}
+	defer fh.Close()
+
+	var list []string
+	for sc := bufio.NewScanner(fh); sc.Scan(); {
+		list = append(list, sc.Text())
+	}
+	return list, nil
 }
 
 func loadSchema(filename string) (*Schema, error) {
@@ -277,11 +294,74 @@ func loadSchema(filename string) (*Schema, error) {
 	}
 
 	schema := new(Schema)
-	return schema, json.Unmarshal(js, schema)
+	if err = json.Unmarshal(js, schema); err != nil {
+		return nil, fmt.Errorf("loadSchema: %w", err)
+	}
+
+	for k, v := range schema.WordLists {
+		if wordMap[k], err = loadList(v); err != nil {
+			return nil, fmt.Errorf("loadSchema: %w", err)
+		}
+	}
+
+	return schema, nil
 }
 
-var db *sql.DB
+var (
+	schemaFile string
+)
+
+func run() int {
+	s, err := loadSchema(schemaFile)
+	if err != nil {
+		log.Printf("Run: %v", err)
+		return 2
+	}
+	db, err := sql.Open(string(s.Driver), s.DataSourceName)
+	if err != nil {
+		log.Printf("Run: %v", err)
+		return 2
+	}
+
+	var (
+		ctx    context.Context
+		cancel context.CancelFunc
+	)
+
+	if s.MaxDuration == 0 {
+		ctx, cancel = context.WithCancel(context.Background())
+	} else {
+		ctx, cancel = context.WithTimeout(
+			context.Background(),
+			time.Duration(s.MaxDuration)*time.Second,
+		)
+	}
+	defer cancel()
+
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		log.Printf("Run: %v", err)
+		return 2
+	}
+	defer tx.Rollback()
+
+	for _, t := range s.Tables {
+		if err = t.insert(ctx, tx); err != nil {
+			log.Printf("Run: %v", err)
+			return 2
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		log.Printf("Run: %v", err)
+		return 2
+	}
+
+	return 0
+}
 
 func main() {
-
+	flag.StringVar(&schemaFile, "schema", "example.json", "json file with schema definition")
+	flag.Parse()
+	os.Exit(run())
 }

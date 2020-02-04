@@ -1,0 +1,7 @@
+{
+    "Driver": "sqlmock",
+    "MaxDuration": 0,
+    "WordLists": {
+       "lorem": "tests/lorem.txt"
+    }
+ }
