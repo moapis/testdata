@@ -1,0 +1,84 @@
+{
+   "Driver": "sqlite3",
+   "DataSourceName": "file:test.db?cache=shared\u0026mode=memory",
+   "WordLists": {
+      "american": "/usr/share/dict/american-english"
+   },
+   "Tables": [
+      {
+         "Name": "categories",
+         "Amount": 4,
+         "Columns": [
+            {
+               "Name": "id",
+               "SQLType": "int",
+               "WordListID": "",
+               "Seed": 0,
+               "Min": 0,
+               "Max": 0,
+               "Null": false
+            },
+            {
+               "Name": "label",
+               "SQLType": "text",
+               "WordListID": "american",
+               "Seed": 1,
+               "Min": 1,
+               "Max": 2,
+               "Null": false
+            }
+         ]
+      },
+      {
+         "Name": "articles",
+         "Amount": 1000,
+         "Columns": [
+            {
+               "Name": "id",
+               "SQLType": "bigint",
+               "WordListID": "",
+               "Seed": 0,
+               "Min": 0,
+               "Max": 0,
+               "Null": false
+            },
+            {
+               "Name": "created",
+               "SQLType": "timestamp",
+               "WordListID": "",
+               "Seed": 3,
+               "Min": 1580000000,
+               "Max": 1580604800,
+               "Null": false
+            },
+            {
+               "Name": "title",
+               "SQLType": "text",
+               "WordListID": "american",
+               "Seed": 4,
+               "Min": 2,
+               "Max": 10,
+               "Null": false
+            },
+            {
+               "Name": "description",
+               "SQLType": "text",
+               "WordListID": "american",
+               "Seed": 0,
+               "Min": 0,
+               "Max": 200,
+               "Null": true
+            },
+            {
+               "Name": "category_id",
+               "SQLType": "int",
+               "WordListID": "",
+               "Seed": 5,
+               "Min": 1,
+               "Max": 4,
+               "Null": false
+            }
+         ]
+      }
+   ]
+}

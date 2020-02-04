@@ -7,11 +7,15 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"strings"
 	"time"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // ValueFunc generates and returns a type specific value for a column.
@@ -33,23 +37,42 @@ var (
 
 // Column generation config
 type Column struct {
-	Name           string
-	SQLType        string
-	WordListID     string
-	Seed, Min, Max int64 // Only used for deterministic pseudo random generation.
-	Null           bool
+	// Name of this column, can be prefixed with SQL schema name if required.
+	// Eg: "public.articles"
+	Name string
 
-	Rand     *rand.Rand `json:"-"` // Rand remains nil if Seed == 0
-	N        int64      `json:"-"` // N can be used as incrementer
-	WordList []string   `json:"-"` // WordList by WordListID
+	// SQLType should be one of the supported type strings.
+	// See the global Registry variable.
+	SQLType string
+
+	// WordListID should be a label from any specified word list.
+	WordListID string
+
+	// Seed is used for the deterministic pseudo-random generator.
+	// Random values are used for numeric values, the amount of words/characters
+	// and which word/characters are selected from the list.
+	// When 0, incremented values are used.
+	Seed int64
+
+	// Min and Max values for all numeric types.
+	// Or Min and Max amounbt of words or characters.
+	Min, Max int64
+
+	// Null-able column.
+	// If set to true, 0 values or 0 lenght text or characters will be instered as null
+	Null bool
+
+	rand     *rand.Rand
+	n        int64 // Incrementer
+	wordList []string
 
 	value ValueFunc
 }
 
 func genInt32(col *Column) interface{} {
-	if col.Rand == nil {
-		col.N++
-		return int32(col.N)
+	if col.rand == nil {
+		col.n++
+		return int32(col.n)
 	}
 
 	min, max := int32(col.Min), int32(col.Max)
@@ -57,9 +80,9 @@ func genInt32(col *Column) interface{} {
 	for {
 		var v int32
 		if max == 0 {
-			v = col.Rand.Int31()
+			v = col.rand.Int31()
 		} else {
-			v = col.Rand.Int31n(max)
+			v = col.rand.Int31n(max)
 		}
 
 		switch {
@@ -72,17 +95,17 @@ func genInt32(col *Column) interface{} {
 }
 
 func genInt64(col *Column) interface{} {
-	if col.Rand == nil {
-		col.N++
-		return col.N
+	if col.rand == nil {
+		col.n++
+		return col.n
 	}
 
 	for {
 		var v int64
 		if col.Max == 0 {
-			v = col.Rand.Int63()
+			v = col.rand.Int63()
 		} else {
-			v = col.Rand.Int63n(col.Max)
+			v = col.rand.Int63n(col.Max)
 		}
 
 		switch {
@@ -110,7 +133,7 @@ func genText(col *Column) interface{} {
 
 	words := make([]string, l)
 	for i := range words {
-		words[i] = col.WordList[col.Rand.Intn(len(col.WordList))]
+		words[i] = col.wordList[col.rand.Intn(len(col.wordList))]
 	}
 
 	return strings.Join(words, " ")
@@ -126,7 +149,7 @@ func genChar(col *Column) interface{} {
 
 	chars := make([]byte, l.(int64))
 	for i := range chars {
-		chars[i] = alphaNumeric[rand.Intn(len(alphaNumeric))]
+		chars[i] = alphaNumeric[col.rand.Intn(len(alphaNumeric))]
 	}
 
 	return string(chars)
@@ -139,7 +162,7 @@ func genByteA(col *Column) interface{} {
 	}
 
 	bs := make([]byte, l.(int64))
-	col.Rand.Read(bs)
+	col.rand.Read(bs)
 	return bs
 }
 
@@ -200,11 +223,11 @@ func (t *Table) prepareColumns() error {
 			if !ok {
 				return fmt.Errorf("Wordlist %s for column %s not defined", col.WordListID, col.Name)
 			}
-			col.WordList = wl
+			col.wordList = wl
 		}
 
 		if col.Seed != 0 {
-			col.Rand = rand.New(rand.NewSource(col.Seed))
+			col.rand = rand.New(rand.NewSource(col.Seed))
 		}
 	}
 
@@ -229,6 +252,32 @@ func (t *Table) insert(ctx context.Context, tx *sql.Tx) error {
 	}
 
 	return nil
+}
+
+// DriverName is a supported sql driver
+type DriverName string
+
+const (
+	// Sqlite driver name
+	Sqlite DriverName = "sqlite3"
+)
+
+// Schema holds all data generation parameters.
+type Schema struct {
+	Driver         DriverName
+	DataSourceName string
+	WordLists      map[string]string
+	Tables         []Table
+}
+
+func loadSchema(filename string) (*Schema, error) {
+	js, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	schema := new(Schema)
+	return schema, json.Unmarshal(js, schema)
 }
 
 var db *sql.DB

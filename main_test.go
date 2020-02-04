@@ -7,8 +7,10 @@ package main
 import (
 	"context"
 	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"reflect"
@@ -48,7 +50,7 @@ func Test_genInt32(t *testing.T) {
 		{
 			"Serial",
 			&Column{
-				N: 22,
+				n: 22,
 			},
 			int32(23),
 		},
@@ -58,7 +60,7 @@ func Test_genInt32(t *testing.T) {
 				Null: true,
 				Min:  0,
 				Max:  1,
-				Rand: rand.New(rand.NewSource(9)),
+				rand: rand.New(rand.NewSource(9)),
 			},
 			nil,
 		},
@@ -68,7 +70,7 @@ func Test_genInt32(t *testing.T) {
 				Null: true,
 				Min:  0,
 				Max:  0,
-				Rand: rand.New(rand.NewSource(2)),
+				rand: rand.New(rand.NewSource(2)),
 			},
 			int32(359266786),
 		},
@@ -78,7 +80,7 @@ func Test_genInt32(t *testing.T) {
 				Null: true,
 				Min:  359266786,
 				Max:  0,
-				Rand: rand.New(rand.NewSource(2)),
+				rand: rand.New(rand.NewSource(2)),
 			},
 			int32(569199786),
 		},
@@ -101,7 +103,7 @@ func Test_genInt64(t *testing.T) {
 		{
 			"Serial",
 			&Column{
-				N: 22,
+				n: 22,
 			},
 			int64(23),
 		},
@@ -111,7 +113,7 @@ func Test_genInt64(t *testing.T) {
 				Null: true,
 				Min:  0,
 				Max:  1,
-				Rand: rand.New(rand.NewSource(9)),
+				rand: rand.New(rand.NewSource(9)),
 			},
 			nil,
 		},
@@ -121,7 +123,7 @@ func Test_genInt64(t *testing.T) {
 				Null: true,
 				Min:  0,
 				Max:  0,
-				Rand: rand.New(rand.NewSource(2)),
+				rand: rand.New(rand.NewSource(2)),
 			},
 			int64(1543039099823358511),
 		},
@@ -131,7 +133,7 @@ func Test_genInt64(t *testing.T) {
 				Null: true,
 				Min:  1543039099823358512,
 				Max:  0,
-				Rand: rand.New(rand.NewSource(2)),
+				rand: rand.New(rand.NewSource(2)),
 			},
 			int64(2444694468985893231),
 		},
@@ -157,7 +159,7 @@ func Test_genTime(t *testing.T) {
 				Null: true,
 				Min:  0,
 				Max:  1,
-				Rand: rand.New(rand.NewSource(9)),
+				rand: rand.New(rand.NewSource(9)),
 			},
 			nil,
 		},
@@ -166,7 +168,7 @@ func Test_genTime(t *testing.T) {
 			&Column{
 				Min:  15000,
 				Max:  15001,
-				Rand: rand.New(rand.NewSource(9)),
+				rand: rand.New(rand.NewSource(9)),
 			},
 			time.Unix(15000, 0),
 		},
@@ -192,7 +194,7 @@ func Test_genText(t *testing.T) {
 				Null: true,
 				Min:  0,
 				Max:  1,
-				Rand: rand.New(rand.NewSource(9)),
+				rand: rand.New(rand.NewSource(9)),
 			},
 			nil,
 		},
@@ -201,8 +203,8 @@ func Test_genText(t *testing.T) {
 			&Column{
 				Min:      3,
 				Max:      4,
-				Rand:     rand.New(rand.NewSource(333)),
-				WordList: wordMap["some"],
+				rand:     rand.New(rand.NewSource(333)),
+				wordList: wordMap["some"],
 			},
 			"worlds spanac foo",
 		},
@@ -228,7 +230,7 @@ func Test_genChar(t *testing.T) {
 				Null: true,
 				Min:  0,
 				Max:  1,
-				Rand: rand.New(rand.NewSource(9)),
+				rand: rand.New(rand.NewSource(9)),
 			},
 			nil,
 		},
@@ -237,9 +239,9 @@ func Test_genChar(t *testing.T) {
 			&Column{
 				Min:  20,
 				Max:  21,
-				Rand: rand.New(rand.NewSource(333)),
+				rand: rand.New(rand.NewSource(333)),
 			},
-			"ICNB56Je2wtJzKwdO5Ln",
+			"8XSb2gYJvhsbuh0F5zDS",
 		},
 	}
 	for _, tt := range tests {
@@ -263,7 +265,7 @@ func Test_genByteA(t *testing.T) {
 				Null: true,
 				Min:  0,
 				Max:  1,
-				Rand: rand.New(rand.NewSource(9)),
+				rand: rand.New(rand.NewSource(9)),
 			},
 			nil,
 		},
@@ -272,7 +274,7 @@ func Test_genByteA(t *testing.T) {
 			&Column{
 				Min:  5,
 				Max:  6,
-				Rand: rand.New(rand.NewSource(333)),
+				rand: rand.New(rand.NewSource(333)),
 			},
 			[]byte{77, 226, 244, 227, 188},
 		},
@@ -325,14 +327,14 @@ func TestTable_row(t *testing.T) {
 			"Some columns",
 			[]*Column{
 				{
-					N:     22,
+					n:     22,
 					value: genInt32,
 				},
 				{
 					Null:  true,
 					Min:   0,
 					Max:   0,
-					Rand:  rand.New(rand.NewSource(2)),
+					rand:  rand.New(rand.NewSource(2)),
 					value: genInt64,
 				},
 			},
@@ -402,13 +404,13 @@ func (a ValueFunc) eq(b ValueFunc) bool {
 
 	ca := &Column{
 		Max:      5,
-		WordList: wordMap["some"],
-		Rand:     rand.New(rand.NewSource(2)),
+		wordList: wordMap["some"],
+		rand:     rand.New(rand.NewSource(2)),
 	}
 	cb := &Column{
 		Max:      5,
-		WordList: wordMap["some"],
-		Rand:     rand.New(rand.NewSource(2)),
+		wordList: wordMap["some"],
+		rand:     rand.New(rand.NewSource(2)),
 	}
 	return reflect.DeepEqual(a(ca), b(cb))
 }
@@ -449,7 +451,7 @@ func TestTable_prepareColumns(t *testing.T) {
 				SQLType:    "int",
 				WordListID: "some",
 				value:      genInt32,
-				WordList:   wordMap["some"],
+				wordList:   wordMap["some"],
 			}},
 			false,
 		},
@@ -464,9 +466,9 @@ func TestTable_prepareColumns(t *testing.T) {
 				SQLType:    "int",
 				WordListID: "some",
 				value:      genInt32,
-				WordList:   wordMap["some"],
+				wordList:   wordMap["some"],
 				Seed:       999,
-				Rand:       rand.New(rand.NewSource(999)),
+				rand:       rand.New(rand.NewSource(999)),
 			}},
 			false,
 		},
@@ -588,4 +590,94 @@ func TestMock(t *testing.T) {
 	mock.ExpectClose()
 	db.Close()
 
+}
+
+var exampleSchema = &Schema{
+	Driver:         Sqlite,
+	DataSourceName: "file:test.db?cache=shared&mode=memory",
+	WordLists: map[string]string{
+		"american": "/usr/share/dict/american-english",
+	},
+	Tables: []Table{
+		{
+			Name:   "categories",
+			Amount: 4,
+			Columns: []*Column{
+				{
+					Name:    "id",
+					SQLType: "int",
+				},
+				{
+					Name:       "label",
+					SQLType:    "text",
+					WordListID: "american",
+					Seed:       1,
+					Min:        1,
+					Max:        2,
+				},
+			},
+		},
+		{
+			Name:   "articles",
+			Amount: 1000,
+			Columns: []*Column{
+				{
+					Name:    "id",
+					SQLType: "bigint",
+				},
+				{
+					Name:    "created",
+					SQLType: "timestamp",
+					Seed:    3,
+					Min:     1580000000,
+					Max:     1580604800,
+				},
+				{
+					Name:       "title",
+					SQLType:    "text",
+					WordListID: "american",
+					Seed:       4,
+					Min:        2,
+					Max:        10,
+				},
+				{
+					Name:       "description",
+					SQLType:    "text",
+					Null:       true,
+					WordListID: "american",
+					Max:        200,
+				},
+				{
+					Name:    "category_id",
+					SQLType: "int",
+					Seed:    5,
+					Min:     1,
+					Max:     4,
+				},
+			},
+		},
+	},
+}
+
+func TestLoadSchema(t *testing.T) {
+	js, err := json.MarshalIndent(exampleSchema, "", "   ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = ioutil.WriteFile("example.json", js, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	schema, err := loadSchema("example.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(exampleSchema, schema) {
+		t.Errorf("loadSchema() schema = \n%v\nwant\n%v", schema, exampleSchema)
+	}
+
+	if _, err = loadSchema("foo"); err == nil {
+		t.Errorf("loadSchema() error = %v, wantErr %v", err, true)
+	}
 }
