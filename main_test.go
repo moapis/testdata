@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
@@ -65,7 +64,7 @@ func Test_genInt32(t *testing.T) {
 				Null: true,
 				Min:  0,
 				Max:  1,
-				rand: rand.New(rand.NewSource(9)),
+				rand: rand.New(rand.NewSource(8)),
 			},
 			nil,
 		},
@@ -83,7 +82,7 @@ func Test_genInt32(t *testing.T) {
 			"High minimal",
 			&Column{
 				Null: true,
-				Min:  359266786,
+				Min:  359266787,
 				Max:  0,
 				rand: rand.New(rand.NewSource(2)),
 			},
@@ -211,7 +210,7 @@ func Test_genText(t *testing.T) {
 				rand:     rand.New(rand.NewSource(333)),
 				wordList: wordMap["some"],
 			},
-			"worlds spanac foo",
+			"bar worlds hello",
 		},
 	}
 	for _, tt := range tests {
@@ -243,7 +242,7 @@ func Test_genChar(t *testing.T) {
 			"20 chars",
 			&Column{
 				Min:  20,
-				Max:  21,
+				Max:  20,
 				rand: rand.New(rand.NewSource(333)),
 			},
 			"8XSb2gYJvhsbuh0F5zDS",
@@ -281,7 +280,7 @@ func Test_genByteA(t *testing.T) {
 				Max:  6,
 				rand: rand.New(rand.NewSource(333)),
 			},
-			[]byte{77, 226, 244, 227, 188},
+			[]byte{209, 218, 37, 82, 50},
 		},
 	}
 	for _, tt := range tests {

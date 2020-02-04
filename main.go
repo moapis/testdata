@@ -58,8 +58,8 @@ type Column struct {
 	// When 0, incremented values are used.
 	Seed int64
 
-	// Min and Max values for all numeric types.
-	// Or Min and Max amounbt of words or characters.
+	// Min and Max values for all numeric types (inclusive).
+	// Or Min and Max amount of words or characters.
 	Min, Max int64
 
 	// Null-able column.
@@ -86,13 +86,13 @@ func genInt32(col *Column) interface{} {
 		if max == 0 {
 			v = col.rand.Int31()
 		} else {
-			v = col.rand.Int31n(max)
+			v = col.rand.Int31n(max + 1)
 		}
 
 		switch {
 		case col.Null && v == 0:
 			return nil
-		case v > min:
+		case v >= min:
 			return v
 		}
 	}
@@ -109,7 +109,7 @@ func genInt64(col *Column) interface{} {
 		if col.Max == 0 {
 			v = col.rand.Int63()
 		} else {
-			v = col.rand.Int63n(col.Max)
+			v = col.rand.Int63n(col.Max + 1)
 		}
 
 		switch {
