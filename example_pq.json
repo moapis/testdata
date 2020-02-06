@@ -105,6 +105,16 @@
                "Max": 10000,
                "Scale": 2,
                "Null": true
+            },
+            {
+               "Name": "score",
+               "SQLType": "real",
+               "WordListID": "",
+               "Seed": 9,
+               "Min": 10000,
+               "Max": 50000,
+               "Scale": 4,
+               "Null": true
             }
          ]
       }

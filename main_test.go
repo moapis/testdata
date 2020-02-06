@@ -374,6 +374,90 @@ func Test_genDecimal(t *testing.T) {
 	}
 }
 
+func Test_genFloat64(t *testing.T) {
+	tests := []struct {
+		name string
+		col  *Column
+		want interface{}
+	}{
+		{
+			"0 Scale",
+			&Column{
+				Scale: 0,
+				n:     1,
+			},
+			float64(2.0),
+		},
+		{
+			"3 Scale",
+			&Column{
+				Scale: 3,
+				n:     1001,
+			},
+			float64(1.002),
+		},
+		{
+			"Null",
+			&Column{
+				Scale: 3,
+				Max:   1,
+				Null:  true,
+				rand:  rand.New(rand.NewSource(9)),
+			},
+			nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := genFloat64(tt.col); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("genFloat64() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_genFloat32(t *testing.T) {
+	tests := []struct {
+		name string
+		col  *Column
+		want interface{}
+	}{
+		{
+			"0 Scale",
+			&Column{
+				Scale: 0,
+				n:     1,
+			},
+			float32(2.0),
+		},
+		{
+			"3 Scale",
+			&Column{
+				Scale: 3,
+				n:     1001,
+			},
+			float32(1.002),
+		},
+		{
+			"Null",
+			&Column{
+				Scale: 3,
+				Max:   1,
+				Null:  true,
+				rand:  rand.New(rand.NewSource(9)),
+			},
+			nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := genFloat32(tt.col); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("genFloat32() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestColumn_setValueFunc(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -782,6 +866,15 @@ var (
 					Scale:   2,
 					Min:     5,     // 0,05
 					Max:     10000, // 100,00
+				},
+				{
+					Name:    "score",
+					SQLType: "real",
+					Null:    true,
+					Seed:    9,
+					Scale:   4,
+					Min:     10000, // 1.0
+					Max:     50000, // 5.0
 				},
 			},
 		},

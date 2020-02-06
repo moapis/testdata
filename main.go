@@ -37,6 +37,8 @@ var (
 		"bytea":     genByteA,
 		"bool":      genBool,
 		"decimal":   genDecimal,
+		"double":    genFloat64,
+		"real":      genFloat32,
 	}
 
 	wordMap map[string][]string
@@ -190,6 +192,23 @@ func genDecimal(col *Column) interface{} {
 		return i
 	}
 	return decimal.New(i.(int64), col.Scale).String()
+}
+
+func genFloat64(col *Column) interface{} {
+	i := genInt64(col)
+	if i == nil {
+		return i
+	}
+	f, _ := decimal.New(i.(int64), col.Scale).Float64()
+	return f
+}
+
+func genFloat32(col *Column) interface{} {
+	f := genFloat64(col)
+	if f == nil {
+		return nil
+	}
+	return float32(f.(float64))
 }
 
 func (col *Column) setValueFunc() error {
