@@ -346,6 +346,7 @@ func loadSchema(filename string) (*Schema, error) {
 		return nil, fmt.Errorf("loadSchema: %w", err)
 	}
 
+	wordMap = make(map[string][]string)
 	for k, v := range schema.WordLists {
 		if wordMap[k], err = loadList(v); err != nil {
 			return nil, fmt.Errorf("loadSchema: %w", err)

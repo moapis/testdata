@@ -31,10 +31,6 @@ var (
 )
 
 func init() {
-	wordMap = map[string][]string{
-		"some": {"hello", "worlds", "spanac", "foo", "bar"},
-	}
-
 	qm := sqlmock.QueryMatcherFunc(func(a, b string) error {
 		if strings.Trim(a, " ") != strings.Trim(b, " ") {
 			return fmt.Errorf(`actual sql: "%s" does not equal to expected "%s"`, a, b)
@@ -211,7 +207,7 @@ func Test_genText(t *testing.T) {
 				Min:      3,
 				Max:      4,
 				rand:     rand.New(rand.NewSource(333)),
-				wordList: wordMap["some"],
+				wordList: []string{"hello", "worlds", "spanac", "foo", "bar"},
 			},
 			"bar worlds hello",
 		},
@@ -586,6 +582,10 @@ func (a ValueFunc) eq(b ValueFunc) bool {
 }
 
 func TestTable_prepareColumns(t *testing.T) {
+	wordMap = map[string][]string{
+		"some": {"hello", "worlds", "spanac", "foo", "bar"},
+	}
+
 	tests := []struct {
 		name    string
 		Columns []*Column
