@@ -78,6 +78,15 @@
                "Min": 1,
                "Max": 4,
                "Null": false
+            },
+            {
+               "Name": "published",
+               "SQLType": "bool",
+               "WordListID": "",
+               "Seed": 0,
+               "Min": 0,
+               "Max": 0,
+               "Null": false
             }
          ]
       }

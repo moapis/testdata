@@ -21,7 +21,8 @@ const (
 		created timestamp,
 		title varchar(100),
 		description varchar(2000),
-		category_id int references categories (id)
+		category_id int references categories (id),
+		published bool not null
 	);`
 )
 

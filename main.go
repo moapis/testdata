@@ -34,6 +34,7 @@ var (
 		"text":      genText,
 		"char":      genChar,
 		"bytea":     genByteA,
+		"bool":      genBool,
 	}
 
 	wordMap map[string][]string
@@ -168,6 +169,14 @@ func genByteA(col *Column) interface{} {
 	bs := make([]byte, l.(int64))
 	col.rand.Read(bs)
 	return bs
+}
+
+func genBool(col *Column) interface{} {
+	if col.rand == nil {
+		col.n++
+		return 1 == col.n%2
+	}
+	return col.rand.Int63n(2) == 1
 }
 
 func (col *Column) setValueFunc() error {

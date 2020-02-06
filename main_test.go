@@ -20,6 +20,8 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
@@ -287,6 +289,43 @@ func Test_genByteA(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := genByteA(tt.col); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("genByteA() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_genBool(t *testing.T) {
+	tests := []struct {
+		name string
+		col  *Column
+		want interface{}
+	}{
+		{
+			"No rand, false",
+			&Column{n: 11},
+			false,
+		},
+		{
+			"No rand, true",
+			&Column{n: 12},
+			true,
+		},
+		{
+			"Rand false",
+			&Column{rand: rand.New(rand.NewSource(1))},
+			false,
+		},
+		{
+			"Rand true",
+			&Column{rand: rand.New(rand.NewSource(0))},
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := genBool(tt.col); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("genBool() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -687,6 +726,10 @@ var (
 					Seed:    5,
 					Min:     1,
 					Max:     4,
+				},
+				{
+					Name:    "published",
+					SQLType: "bool",
 				},
 			},
 		},
