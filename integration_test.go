@@ -22,7 +22,8 @@ const (
 		title varchar(100),
 		description varchar(2000),
 		category_id int references categories (id),
-		published bool not null
+		published bool not null,
+		price decimal null
 	);`
 )
 

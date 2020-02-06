@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/ericlagergren/decimal"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -326,6 +327,48 @@ func Test_genBool(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := genBool(tt.col); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("genBool() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_genDecimal(t *testing.T) {
+	tests := []struct {
+		name string
+		col  *Column
+		want interface{}
+	}{
+		{
+			"0 Scale",
+			&Column{
+				Scale: 0,
+				n:     1,
+			},
+			decimal.New(2, 0).String(),
+		},
+		{
+			"3 Scale",
+			&Column{
+				Scale: 3,
+				n:     1001,
+			},
+			decimal.New(1002, 3).String(),
+		},
+		{
+			"Null",
+			&Column{
+				Scale: 3,
+				Max:   1,
+				Null:  true,
+				rand:  rand.New(rand.NewSource(9)),
+			},
+			nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := genDecimal(tt.col); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("genDecimal() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -730,6 +773,15 @@ var (
 				{
 					Name:    "published",
 					SQLType: "bool",
+				},
+				{
+					Name:    "price",
+					SQLType: "decimal",
+					Null:    true,
+					Seed:    22,
+					Scale:   2,
+					Min:     5,     // 0,05
+					Max:     10000, // 100,00
 				},
 			},
 		},

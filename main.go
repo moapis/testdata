@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ericlagergren/decimal"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -35,6 +36,7 @@ var (
 		"char":      genChar,
 		"bytea":     genByteA,
 		"bool":      genBool,
+		"decimal":   genDecimal,
 	}
 
 	wordMap map[string][]string
@@ -62,6 +64,9 @@ type Column struct {
 	// Min and Max values for all numeric types (inclusive).
 	// Or Min and Max amount of words or characters.
 	Min, Max int64
+
+	// Scale for decimal numbers
+	Scale int
 
 	// Null-able column.
 	// If set to true, 0 values or 0 lenght text or characters will be instered as null
@@ -177,6 +182,14 @@ func genBool(col *Column) interface{} {
 		return 1 == col.n%2
 	}
 	return col.rand.Int63n(2) == 1
+}
+
+func genDecimal(col *Column) interface{} {
+	i := genInt64(col)
+	if i == nil {
+		return i
+	}
+	return decimal.New(i.(int64), col.Scale).String()
 }
 
 func (col *Column) setValueFunc() error {
