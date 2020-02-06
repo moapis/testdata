@@ -138,12 +138,12 @@ func genTime(col *Column) interface{} {
 }
 
 func genText(col *Column) interface{} {
-	l, _ := genInt64(col).(int64)
-	if l == 0 {
+	n := genInt64(col)
+	if n == nil {
 		return nil
 	}
 
-	words := make([]string, l)
+	words := make([]string, n.(int64))
 	for i := range words {
 		words[i] = col.wordList[col.rand.Intn(len(col.wordList))]
 	}
