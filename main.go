@@ -238,7 +238,7 @@ func (t *Table) row() []interface{} {
 }
 
 const (
-	insert = "insert into %s (%s) values (%s);"
+	insert = "insert into %s (%s) values (%s) on conflict do nothing;"
 )
 
 func (t *Table) insertQuery() string {

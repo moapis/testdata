@@ -542,7 +542,7 @@ func TestTable_insertQuery(t *testing.T) {
 					{Name: "three"},
 				},
 			},
-			"insert into schema.table (one, two, three) values ($1, $2, $3);",
+			"insert into schema.table (one, two, three) values ($1, $2, $3) on conflict do nothing;",
 		},
 	}
 	for _, tt := range tests {
@@ -713,7 +713,7 @@ func TestTable_insert(t *testing.T) {
 		},
 	}
 
-	query := "insert into test_table (first, second) values ($1, $2);"
+	query := "insert into test_table (first, second) values ($1, $2) on conflict do nothing;"
 	t.Log("Expected succes")
 	ep := mock.ExpectPrepare(query)
 	for i := 1; i <= tb.Amount; i++ {
